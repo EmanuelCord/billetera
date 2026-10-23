@@ -1,0 +1,51 @@
+{
+  "name": "MicroPay Gateway - Billetera & Micropagos",
+  "short_name": "MicroPay",
+  "description": "PWA de micropagos instantáneos desde $0.10 USD con Solana Pay, Gift Cards y Tarjetas.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["finance", "utilities", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Nuevo Cobro",
+      "url": "./index.html#checkout",
+      "description": "Generar enlace o QR de micropago"
+    },
+    {
+      "name": "Canjear Gift Card",
+      "url": "./index.html#giftcard",
+      "description": "Canjear código de saldo Steam / Tremendous"
+    },
+    {
+      "name": "Ver Ledger",
+      "url": "./index.html#ledger",
+      "description": "Ver balance y transacciones"
+    }
+  ]
+}

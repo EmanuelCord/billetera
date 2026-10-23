@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MicroPay Gateway - Billetera & Micropagos PWA</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="application-name" content="MicroPay">
+  <meta name="apple-mobile-web-app-title" content="MicroPay">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#020617">
+  <meta name="description" content="PWA de micropagos instantáneos desde $0.10 USD con Solana Pay, Gift Cards y Tarjetas.">
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d',
+            },
+            solana: '#9945FF',
+            solanaGreen: '#14F195',
+            darkBg: '#020617',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- QR Code Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+  <style>
+    /* Card Flip Animation Styles */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .transform-style-3d {
+      transform-style: preserve-3d;
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+    
+    /* Glassmorphism */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .light .glass-card {
+      background: rgba(255, 255, 255, 0.90);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(2, 6, 23, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 light:bg-slate-50 text-slate-100 light:text-slate-800 font-sans min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 pb-20 md:pb-6 transition-colors duration-200">
+
+  <!-- TOP HEADER -->
+  <header class="w-full max-w-4xl mx-auto px-4 py-3 sm:py-4 flex justify-between items-center border-b border-slate-800/80 light:border-slate-200/80 sticky top-0 z-40 bg-slate-950/80 light:bg-slate-50/80 backdrop-blur-md">
+    <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('checkout')">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-purple-500 p-0.5 shadow-lg shadow-emerald-500/10">
+        <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+          <i class="fa-solid fa-bolt text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200 text-lg"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="font-bold text-lg leading-tight tracking-tight text-white light:text-slate-900">MicroPay</h1>
+          <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">v2.5 PWA</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Solana Pay & Gift Cards desde $0.10 USD</p>
+      </div>
+    </div>
+
+    <!-- Desktop Navigation Tabs -->
+    <nav class="hidden md:flex items-center space-x-1 bg-slate-900 light:bg-slate-200/70 p-1 rounded-2xl border border-slate-800 light:border-slate-300">
+      <button id="nav-checkout" onclick="switchTab('checkout')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
+        <i class="fa-solid fa-qrcode"></i>
+        <span>Cobrar</span>
+      </button>
+      <button id="nav-giftcards" onclick="switchTab('giftcards')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white flex items-center space-x-1.5">
+        <i class="fa-solid fa-gift"></i>
+        <span>Gift Cards</span>
+      </button>
+      <button id="nav-ledger" onclick="switchTab('ledger')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white flex items-center space-x-1.5">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Ledger</span>
+      </button>
+      <button id="nav-settings" onclick="switchTab('settings')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white flex items-center space-x-1.5">
+        <i class="fa-solid fa-gear"></i>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+
+    <!-- Top Action Buttons -->
+    <div class="flex items-center space-x-2">
+      <!-- Balance Pill -->
+      <div onclick="switchTab('ledger')" class="cursor-pointer flex items-center bg-slate-900 light:bg-white border border-slate-800 light:border-slate-300 rounded-xl px-3 py-1.5 text-xs shadow-sm hover:border-emerald-500/50 transition">
+        <span class="text-slate-400 mr-2 text-[11px] hidden sm:inline">Saldo:</span>
+        <span id="merchantBalance" class="font-mono font-bold text-emerald-400">$12.40 USD</span>
+      </div>
+
+      <!-- Install PWA Button (Hidden by default, shown when installable) -->
+      <button id="pwaInstallBtn" onclick="promptPWAInstall()" class="hidden px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 text-xs font-semibold transition items-center space-x-1">
+        <i class="fa-solid fa-download"></i>
+        <span class="hidden sm:inline">Instalar</span>
+      </button>
+
+      <!-- Theme Switcher -->
+      <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-900 light:bg-white border border-slate-800 light:border-slate-300 text-slate-300 light:text-slate-600 hover:text-white light:hover:text-black transition" title="Alternar tema">
+        <i id="themeIcon" class="fa-solid fa-moon text-amber-400"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="w-full max-w-xl mx-auto px-4 py-5 flex-grow flex flex-col justify-center">
+
+    <!-- ========================================== -->
+    <!-- SECTION 1: CHECKOUT / COBRO (Solana & Card) -->
+    <!-- ========================================== -->
+    <div id="section-checkout" class="glass-card border border-slate-800/80 light:border-slate-200 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-6">
+
+      <!-- Amount Selector -->
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-semibold tracking-wider text-slate-400 uppercase">1. Monto del Micropago</label>
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Mínimo $0.10 USD</span>
+        </div>
+
+        <!-- Quick Amount Grid -->
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="selectQuickAmount(0.10)" class="quick-btn active-amount py-2.5 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-400 text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="0.10">$0.10</button>
+          <button onclick="selectQuickAmount(0.50)" class="quick-btn py-2.5 rounded-xl border border-slate-800 light:border-slate-300 bg-slate-900 light:bg-white text-slate-300 light:text-slate-800 text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="0.50">$0.50</button>
+          <button onclick="selectQuickAmount(1.00)" class="quick-btn py-2.5 rounded-xl border border-slate-800 light:border-slate-300 bg-slate-900 light:bg-white text-slate-300 light:text-slate-800 text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="1.00">$1.00</button>
+          <button onclick="selectQuickAmount(5.00)" class="quick-btn py-2.5 rounded-xl border border-slate-800 light:border-slate-300 bg-slate-900 light:bg-white text-slate-300 light:text-slate-800 text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="5.00">$5.00</button>
+        </div>
+
+        <!-- Custom Input Field -->
+        <div class="relative rounded-2xl shadow-inner">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold text-xl">$</div>
+          <input type="number" id="customAmount" min="0.10" step="0.01" value="0.10" oninput="handleAmountInput()"
+            class="block w-full pl-9 pr-16 py-3.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-2xl font-mono font-bold text-white light:text-slate-900 transition">
+          <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-xs font-semibold text-slate-400">USD</div>
+        </div>
+      </div>
+
+      <!-- Payment Method Switcher Tabs -->
+      <div class="space-y-4">
+        <label class="block text-xs font-semibold tracking-wider text-slate-400 uppercase">2. Método de Micropago</label>
+        
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950/80 light:bg-slate-200/70 rounded-2xl border border-slate-800/80 light:border-slate-300">
+          <button id="tabSolana" onclick="switchMethod('solana')" class="flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition bg-slate-800 text-purple-400 shadow border border-purple-500/20">
+            <i class="fa-solid fa-qrcode"></i>
+            <span>Solana Pay (USDC)</span>
+          </button>
+          <button id="tabCard" onclick="switchMethod('card')" class="flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white">
+            <i class="fa-solid fa-credit-card text-emerald-400"></i>
+            <span>Tarjeta Débito/Crédito</span>
+          </button>
+        </div>
+
+        <!-- SOLANA PAY VIEW -->
+        <div id="solanaPaymentView" class="space-y-4 pt-1">
+          <div class="bg-slate-950/80 light:bg-white border border-slate-800 light:border-slate-300 rounded-3xl p-5 flex flex-col items-center space-y-3">
+            
+            <!-- Canvas QR with Solana center logo badge -->
+            <div class="relative bg-white p-3 rounded-2xl shadow-xl border border-slate-200">
+              <canvas id="solanaQrCode" class="w-48 h-48"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-9 h-9 rounded-full bg-slate-950 border-2 border-white flex items-center justify-center shadow-lg">
+                  <i class="fa-solid fa-bolt text-solanaGreen text-xs"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Amount & Network Specs -->
+            <div class="text-center space-y-1">
+              <p id="solanaAmountLabel" class="text-base font-mono font-bold text-solanaGreen">$0.10 USDC (Solana Network)</p>
+              <p class="text-xs text-slate-400">Escanea con Phantom, Solflare o Backpack</p>
+            </div>
+
+            <!-- Unique Base58 Reference Key -->
+            <div class="w-full bg-slate-900 light:bg-slate-100 rounded-xl px-3 py-2 border border-slate-800 light:border-slate-200 flex items-center justify-between text-[11px]">
+              <div class="flex items-center space-x-2 text-slate-400 truncate">
+                <i class="fa-solid fa-fingerprint text-purple-400"></i>
+                <span>Referencia Única:</span>
+                <span id="solanaRefKey" class="font-mono text-slate-200 light:text-slate-800 font-semibold truncate">Cargando...</span>
+              </div>
+              <button onclick="copyReferenceKey()" class="text-slate-400 hover:text-purple-400 transition ml-2" title="Copiar referencia">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+
+            <!-- Micro-fee Notice -->
+            <div class="flex items-center space-x-2 text-[11px] text-emerald-400">
+              <i class="fa-solid fa-shield-check"></i>
+              <span>Comisión de red Solana: ~ $0.00025 USD</span>
+            </div>
+          </div>
+
+          <!-- Live Payment Simulation Progress -->
+          <div id="solanaStatusStep" class="hidden text-center py-2 px-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs text-purple-300 font-medium"></div>
+
+          <!-- Action Buttons -->
+          <div class="space-y-2">
+            <!-- Open Mobile Wallet Deep Link -->
+            <a id="solanaDeepLink" href="#" class="w-full py-3.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-purple-500/20 transition flex items-center justify-center space-x-2 text-sm">
+              <i class="fa-solid fa-wallet"></i>
+              <span>Abrir en Billetera Solana</span>
+            </a>
+
+            <!-- Quick Simulator Buttons Grid -->
+            <div class="grid grid-cols-2 gap-2">
+              <button id="solanaSimulateBtn" onclick="triggerSolanaSimulation()" class="py-2.5 px-3 rounded-xl bg-slate-900 light:bg-slate-200 border border-slate-800 light:border-slate-300 hover:border-purple-500 text-slate-300 light:text-slate-800 text-xs font-semibold transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-play text-purple-400"></i>
+                <span>Simular Pago Realizado</span>
+              </button>
+              <button onclick="handleConnectSolanaWallet()" class="py-2.5 px-3 rounded-xl bg-slate-900 light:bg-slate-200 border border-slate-800 light:border-slate-300 hover:border-purple-500 text-slate-300 light:text-slate-800 text-xs font-semibold transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-plug text-emerald-400"></i>
+                <span>Conectar Phantom</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD PAYMENT VIEW -->
+        <div id="cardPaymentView" class="hidden space-y-4 pt-1">
+          <!-- 3D Interactive Card -->
+          <div class="perspective-1000 w-full h-44 cursor-pointer" onclick="flipCard()">
+            <div id="visualCard" class="relative w-full h-full rounded-2xl transition-transform duration-500 transform-style-3d bg-gradient-to-tr from-slate-900 via-slate-800 to-indigo-950 border border-slate-700/60 p-5 shadow-2xl flex flex-col justify-between overflow-hidden">
+              <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+
+              <!-- FRONT -->
+              <div class="card-front flex flex-col justify-between h-full backface-hidden">
+                <div class="flex justify-between items-center">
+                  <div class="w-10 h-7 rounded bg-amber-400/80 border border-amber-300 flex items-center justify-center overflow-hidden relative">
+                    <div class="w-full h-0.5 bg-amber-600/50 my-0.5"></div>
+                  </div>
+                  <span id="cardBrandLogo" class="text-slate-300">
+                    <i class="fa-brands fa-cc-visa text-2xl text-blue-400"></i>
+                  </span>
+                </div>
+                <div>
+                  <div id="cardDisplayNumber" class="font-mono text-lg tracking-widest text-white font-semibold">•••• •••• •••• ••••</div>
+                </div>
+                <div class="flex justify-between items-end text-xs">
+                  <div>
+                    <div class="text-[9px] uppercase tracking-wider text-slate-400">Titular</div>
+                    <div id="cardDisplayName" class="font-medium text-slate-200 uppercase truncate max-w-[150px]">NOMBRE Y APELLIDO</div>
+                  </div>
+                  <div>
+                    <div class="text-[9px] uppercase tracking-wider text-slate-400">Expira</div>
+                    <div id="cardDisplayExp" class="font-mono text-slate-200">MM/AA</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BACK -->
+              <div class="card-back absolute inset-0 p-5 rounded-2xl bg-slate-900 border border-slate-700 rotate-y-180 backface-hidden flex flex-col justify-between">
+                <div class="w-full h-8 bg-slate-950 -mx-5 mt-2"></div>
+                <div class="space-y-1">
+                  <div class="text-[9px] uppercase text-right text-slate-400">CVV / CVC</div>
+                  <div id="cardDisplayCvv" class="w-full bg-white text-slate-900 font-mono text-right pr-3 py-1 text-sm rounded font-bold">•••</div>
+                </div>
+                <div class="text-[9px] text-slate-500 text-center">Transacción segura procesada por MicroPay Engine</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Form Inputs -->
+          <div class="space-y-3">
+            <div>
+              <input type="text" id="cardNumber" maxlength="19" placeholder="Número de Tarjeta (ej: 4242 4242...)" 
+                class="w-full px-4 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <input type="text" id="cardName" placeholder="Nombre del Titular" 
+                class="w-full px-4 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+              
+              <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="cardExp" maxlength="5" placeholder="MM/AA" 
+                  class="w-full px-3 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+                <input type="password" id="cardCvv" maxlength="4" placeholder="CVV" onfocus="flipCard(true)" onblur="flipCard(false)"
+                  class="w-full px-3 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+              </div>
+            </div>
+          </div>
+
+          <button id="payCardBtn" onclick="processCardPayment()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2 text-sm">
+            <i class="fa-solid fa-lock text-sm"></i>
+            <span id="cardPayBtnText">Pagar $0.10 USD Ahora</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION 2: GIFT CARD GATEWAY REDEMPTION     -->
+    <!-- ========================================== -->
+    <div id="section-giftcards" class="hidden glass-card border border-slate-800/80 light:border-slate-200 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-6">
+      
+      <div>
+        <h2 class="text-lg font-bold text-white light:text-slate-900 flex items-center space-x-2">
+          <i class="fa-solid fa-gift text-teal-400"></i>
+          <span>Canje de Gift Cards & Saldo Virtual</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">Valida códigos de terceros (Steam, Tremendous, Amazon) para acreditar micro-saldos sin comisiones fijas.</p>
+      </div>
+
+      <!-- Provider Selector Grid -->
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold tracking-wider text-slate-400 uppercase">Selecciona el Proveedor</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button onclick="selectGiftProvider('steam')" data-provider="steam" class="gift-provider-btn py-3 px-2 rounded-2xl border border-emerald-500 bg-emerald-500/10 text-white text-xs font-semibold flex flex-col items-center space-y-1.5 transition">
+            <i class="fa-brands fa-steam text-lg text-blue-400"></i>
+            <span>Steam</span>
+          </button>
+          <button onclick="selectGiftProvider('tremendous')" data-provider="tremendous" class="gift-provider-btn py-3 px-2 rounded-2xl border border-slate-800 light:border-slate-300 text-slate-400 text-xs font-semibold flex flex-col items-center space-y-1.5 transition">
+            <i class="fa-solid fa-award text-lg text-teal-400"></i>
+            <span>Tremendous</span>
+          </button>
+          <button onclick="selectGiftProvider('amazon')" data-provider="amazon" class="gift-provider-btn py-3 px-2 rounded-2xl border border-slate-800 light:border-slate-300 text-slate-400 text-xs font-semibold flex flex-col items-center space-y-1.5 transition">
+            <i class="fa-brands fa-amazon text-lg text-orange-400"></i>
+            <span>Amazon</span>
+          </button>
+          <button onclick="selectGiftProvider('google_apple')" data-provider="google_apple" class="gift-provider-btn py-3 px-2 rounded-2xl border border-slate-800 light:border-slate-300 text-slate-400 text-xs font-semibold flex flex-col items-center space-y-1.5 transition">
+            <i class="fa-brands fa-google-play text-lg text-indigo-400"></i>
+            <span>Play / Apple</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Code Input Field -->
+      <div class="space-y-3">
+        <label class="block text-xs font-semibold tracking-wider text-slate-400 uppercase">Introduce el Código de la Tarjeta</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-barcode text-base"></i>
+          </div>
+          <input type="text" id="giftCardCodeInput" placeholder="XXXXX-XXXXX-XXXXX" 
+            class="w-full pl-11 pr-4 py-3.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-2xl text-sm font-mono tracking-wider focus:ring-2 focus:ring-teal-500 text-white light:text-slate-900 uppercase">
+        </div>
+
+        <button id="giftRedeemBtn" onclick="handleGiftCardRedeem()" class="w-full py-3.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold rounded-2xl shadow-lg shadow-teal-500/20 transition flex items-center justify-center space-x-2 text-sm">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Validar y Acreditar Saldo</span>
+        </button>
+      </div>
+
+      <!-- Demo Codes Helper Drawer -->
+      <div class="bg-slate-900/80 light:bg-slate-100 border border-slate-800 light:border-slate-200 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold text-slate-300 light:text-slate-700 flex items-center space-x-1.5">
+            <i class="fa-solid fa-vial text-teal-400"></i>
+            <span>Códigos de Prueba Rápidos:</span>
+          </span>
+          <span class="text-[10px] text-slate-500">Haz clic para autocompletar</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="fillDemoGiftCode('STEAM-DEMO-10', 'steam')" class="p-2 rounded-xl bg-slate-950 light:bg-white border border-slate-800 light:border-slate-200 text-left hover:border-teal-500 transition">
+            <div class="font-mono text-teal-400 font-bold">STEAM-DEMO-10</div>
+            <div class="text-[10px] text-slate-400">Steam ($10.00 USD)</div>
+          </button>
+          <button onclick="fillDemoGiftCode('TREM-DEMO-25', 'tremendous')" class="p-2 rounded-xl bg-slate-950 light:bg-white border border-slate-800 light:border-slate-200 text-left hover:border-teal-500 transition">
+            <div class="font-mono text-teal-400 font-bold">TREM-DEMO-25</div>
+            <div class="text-[10px] text-slate-400">Tremendous ($25.00 USD)</div>
+          </button>
+          <button onclick="fillDemoGiftCode('AMZN-DEMO-05', 'amazon')" class="p-2 rounded-xl bg-slate-950 light:bg-white border border-slate-800 light:border-slate-200 text-left hover:border-teal-500 transition">
+            <div class="font-mono text-teal-400 font-bold">AMZN-DEMO-05</div>
+            <div class="text-[10px] text-slate-400">Amazon ($5.00 USD)</div>
+          </button>
+          <button onclick="fillDemoGiftCode('TREM-MICRO-10', 'tremendous')" class="p-2 rounded-xl bg-slate-950 light:bg-white border border-slate-800 light:border-slate-200 text-left hover:border-teal-500 transition">
+            <div class="font-mono text-teal-400 font-bold">TREM-MICRO-10</div>
+            <div class="text-[10px] text-slate-400">Micro-canje ($0.10 USD)</div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION 3: LEDGER & DASHBOARD EN TIEMPO REAL -->
+    <!-- ========================================== -->
+    <div id="section-ledger" class="hidden glass-card border border-slate-800/80 light:border-slate-200 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white light:text-slate-900 flex items-center space-x-2">
+            <i class="fa-solid fa-chart-line text-emerald-400"></i>
+            <span>Ledger & Métricas en Tiempo Real</span>
+          </h2>
+          <p class="text-xs text-slate-400">Acumulación de micropagos desde $0.10 USD y auditoría de comisiones.</p>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="window.ledgerStore.exportCSV()" class="px-3 py-1.5 rounded-xl bg-slate-900 light:bg-slate-200 border border-slate-800 light:border-slate-300 text-slate-300 light:text-slate-800 text-xs font-semibold hover:border-emerald-500 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-file-csv text-emerald-400"></i>
+            <span>Exportar CSV</span>
+          </button>
+          <button onclick="window.ledgerStore.resetToDefault()" class="p-2 rounded-xl bg-slate-900 light:bg-slate-200 border border-slate-800 light:border-slate-300 text-slate-400 hover:text-rose-400 transition" title="Restablecer datos demo">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Metrics Cards Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3.5 rounded-2xl bg-slate-900/80 light:bg-slate-100 border border-slate-800/80 light:border-slate-200">
+          <span class="text-[10px] uppercase tracking-wider text-slate-400">Balance Total</span>
+          <div id="ledgerTotalAmount" class="font-mono text-xl font-bold text-emerald-400 mt-0.5">$0.00</div>
+          <span class="text-[10px] text-slate-500">Acreditado</span>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-900/80 light:bg-slate-100 border border-slate-800/80 light:border-slate-200">
+          <span class="text-[10px] uppercase tracking-wider text-purple-400">Solana Pay</span>
+          <div id="ledgerSolanaAmount" class="font-mono text-xl font-bold text-purple-400 mt-0.5">$0.00</div>
+          <span class="text-[10px] text-slate-500">USDC / SOL</span>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-900/80 light:bg-slate-100 border border-slate-800/80 light:border-slate-200">
+          <span class="text-[10px] uppercase tracking-wider text-teal-400">Gift Cards</span>
+          <div id="ledgerGiftAmount" class="font-mono text-xl font-bold text-teal-400 mt-0.5">$0.00</div>
+          <span class="text-[10px] text-slate-500">Steam/Tremendous</span>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-900/80 light:bg-slate-100 border border-slate-800/80 light:border-slate-200">
+          <span class="text-[10px] uppercase tracking-wider text-cyan-400">Ahorro Comisiones</span>
+          <div id="ledgerSavedFees" class="font-mono text-xl font-bold text-cyan-400 mt-0.5">$0.00</div>
+          <span class="text-[10px] text-slate-500">vs pasarelas clásicas</span>
+        </div>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="flex items-center space-x-2 text-xs overflow-x-auto pb-1">
+        <button onclick="filterLedger('all')" data-filter="all" class="ledger-filter-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold whitespace-nowrap">
+          Todos (<span id="ledgerTxCount">0</span>)
+        </button>
+        <button onclick="filterLedger('solana')" data-filter="solana" class="ledger-filter-btn px-3 py-1.5 rounded-xl border border-slate-800 light:border-slate-300 text-slate-400 font-semibold whitespace-nowrap hover:text-white">
+          Solana Pay
+        </button>
+        <button onclick="filterLedger('giftcard')" data-filter="giftcard" class="ledger-filter-btn px-3 py-1.5 rounded-xl border border-slate-800 light:border-slate-300 text-slate-400 font-semibold whitespace-nowrap hover:text-white">
+          Gift Cards
+        </button>
+        <button onclick="filterLedger('card')" data-filter="card" class="ledger-filter-btn px-3 py-1.5 rounded-xl border border-slate-800 light:border-slate-300 text-slate-400 font-semibold whitespace-nowrap hover:text-white">
+          Tarjetas
+        </button>
+      </div>
+
+      <!-- Ledger Table -->
+      <div class="overflow-x-auto rounded-2xl border border-slate-800/80 light:border-slate-200">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/80 light:bg-slate-100 border-b border-slate-800 light:border-slate-200 text-[10px] uppercase tracking-wider text-slate-400">
+              <th class="py-2.5 px-3">Método / Fecha</th>
+              <th class="py-2.5 px-3 hidden sm:table-cell">Referencia</th>
+              <th class="py-2.5 px-3 text-right">Monto</th>
+              <th class="py-2.5 px-3 text-right hidden sm:table-cell">Comisión</th>
+              <th class="py-2.5 px-3 text-right">Recibo</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerTableBody">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION 4: AJUSTES DEL COMERCIO            -->
+    <!-- ========================================== -->
+    <div id="section-settings" class="hidden glass-card border border-slate-800/80 light:border-slate-200 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5">
+      
+      <div>
+        <h2 class="text-lg font-bold text-white light:text-slate-900 flex items-center space-x-2">
+          <i class="fa-solid fa-gear text-slate-400"></i>
+          <span>Ajustes del Comercio & Configuración Web3</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">Configura tu wallet receptora de Solana, nombre comercial y token para los micropagos.</p>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 light:text-slate-700 mb-1">Nombre Comercial / Etiqueta</label>
+          <input type="text" id="settingsMerchantName" 
+            class="w-full px-4 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900 text-sm">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 light:text-slate-700 mb-1">Dirección de Billetera Solana Receptora (Merchant Wallet)</label>
+          <input type="text" id="settingsMerchantWallet" 
+            class="w-full px-4 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900 text-xs">
+          <span class="text-[10px] text-slate-500 mt-1 block">Tus clientes transferirán directamente a esta dirección pública en la blockchain.</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 light:text-slate-700 mb-1">Moneda Predeterminada</label>
+            <select id="settingsCurrency" class="w-full px-3 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+              <option value="USDC">USDC (SPL Token Estable)</option>
+              <option value="SOL">SOL (Nativo)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-300 light:text-slate-700 mb-1">Red de Solana</label>
+            <select id="settingsNetwork" class="w-full px-3 py-2.5 bg-slate-950/70 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+              <option value="mainnet-beta">Mainnet-Beta (Producción)</option>
+              <option value="devnet">Devnet (Pruebas gratuitas)</option>
+            </select>
+          </div>
+        </div>
+
+        <button onclick="saveMerchantSettings()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition text-sm">
+          Guardar Ajustes
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- PWA INSTALL FLOATING BANNER (Appears if installable on mobile) -->
+  <div id="pwaBanner" class="hidden fixed bottom-20 left-4 right-4 max-w-md mx-auto p-3.5 rounded-2xl bg-slate-900/95 light:bg-white border border-emerald-500/40 shadow-2xl backdrop-blur-md z-40 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 font-bold text-lg">
+        <i class="fa-solid fa-bolt"></i>
+      </div>
+      <div>
+        <div class="text-xs font-bold text-white light:text-slate-900">Instala MicroPay PWA</div>
+        <div class="text-[10px] text-slate-400">Funciona offline y acceso directo</div>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button onclick="promptPWAInstall()" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Instalar</button>
+      <button onclick="document.getElementById('pwaBanner').classList.add('hidden')" class="text-slate-400 hover:text-white p-1">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/90 light:bg-white/90 backdrop-blur-md border-t border-slate-800/80 light:border-slate-200 z-40 px-3 py-2 flex justify-around">
+    <button id="bottom-nav-checkout" onclick="switchTab('checkout')" class="flex flex-col items-center py-1 px-3 text-emerald-400 border-t-2 border-emerald-400 transition">
+      <i class="fa-solid fa-qrcode text-base"></i>
+      <span class="text-[10px] font-semibold mt-1">Cobrar</span>
+    </button>
+    <button id="bottom-nav-giftcards" onclick="switchTab('giftcards')" class="flex flex-col items-center py-1 px-3 text-slate-400 transition">
+      <i class="fa-solid fa-gift text-base"></i>
+      <span class="text-[10px] font-semibold mt-1">Gift Cards</span>
+    </button>
+    <button id="bottom-nav-ledger" onclick="switchTab('ledger')" class="flex flex-col items-center py-1 px-3 text-slate-400 transition">
+      <i class="fa-solid fa-chart-line text-base"></i>
+      <span class="text-[10px] font-semibold mt-1">Ledger</span>
+    </button>
+    <button id="bottom-nav-settings" onclick="switchTab('settings')" class="flex flex-col items-center py-1 px-3 text-slate-400 transition">
+      <i class="fa-solid fa-gear text-base"></i>
+      <span class="text-[10px] font-semibold mt-1">Ajustes</span>
+    </button>
+  </nav>
+
+  <!-- CONFIRMATION & RECEIPT MODAL -->
+  <div id="receiptModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center shadow-2xl relative overflow-hidden">
+      
+      <div class="absolute -top-12 -left-12 w-28 h-28 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-xl">
+        <i class="fa-solid fa-check"></i>
+      </div>
+
+      <div class="space-y-1">
+        <h3 class="text-lg font-bold text-white light:text-slate-900">¡Micropago Confirmado!</h3>
+        <p class="text-xs text-slate-400" id="receiptMemo">Acreditado instantáneamente</p>
+      </div>
+
+      <!-- Receipt Breakdown -->
+      <div class="bg-slate-950/60 light:bg-slate-100 rounded-2xl p-4 space-y-2 text-xs font-mono border border-slate-800/60 light:border-slate-200 text-left">
+        <div class="flex justify-between text-slate-400">
+          <span>Monto Recibido:</span>
+          <span id="receiptAmount" class="font-bold text-emerald-400">$0.10 USD</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Método:</span>
+          <span id="receiptMethod" class="text-slate-200 light:text-slate-800">Solana Pay (USDC)</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>ID Transacción:</span>
+          <span id="receiptTxId" class="text-slate-400 truncate max-w-[130px]">tx_98a7f1</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Fecha:</span>
+          <span id="receiptDate" class="text-slate-300 light:text-slate-700">23 oct 2026</span>
+        </div>
+        <div class="flex justify-between text-slate-400 pt-1 border-t border-slate-800 light:border-slate-300">
+          <span>Comisión de Red:</span>
+          <span id="receiptFee" class="text-emerald-400">$0.000250 USD</span>
+        </div>
+      </div>
+
+      <button onclick="closeModal()" class="w-full py-3 bg-slate-800 light:bg-slate-200 hover:bg-slate-700 text-white light:text-slate-900 font-bold rounded-xl transition text-sm">
+        Entendido
+      </button>
+    </div>
+  </div>
+
+  <!-- Application Logic Modules -->
+  <script src="js/ledger.js"></script>
+  <script src="js/solana-pay.js"></script>
+  <script src="js/giftcards.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

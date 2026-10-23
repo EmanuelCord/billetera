@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroPay Gateway - Micropagos desde $0.10 USD</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        },
+                        solana: '#9945FF',
+                        solanaGreen: '#14F195',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+    <style>
+        /* Card Flip Animation Styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        
+        /* Glassmorphism utilities */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .light .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 light:bg-slate-50 text-slate-100 light:text-slate-800 font-sans min-h-full flex flex-col justify-between transition-colors duration-300">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full max-w-4xl mx-auto px-4 py-4 flex justify-between items-center border-b border-slate-800/80 light:border-slate-200">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid fa-bolt text-slate-950 font-bold text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-tight text-white light:text-slate-900">MicroPay<span class="text-emerald-400 text-xs font-semibold ml-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">v2.4</span></h1>
+                <p class="text-xs text-slate-400">Micropagos instantáneos desde $0.10 USD</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Balance Ledger Display -->
+            <div class="hidden sm:flex items-center bg-slate-900 light:bg-slate-100 border border-slate-800 light:border-slate-200 rounded-xl px-3 py-1.5 text-xs">
+                <span class="text-slate-400 mr-2">Saldo Recibido:</span>
+                <span id="merchantBalance" class="font-mono font-bold text-emerald-400">$12.40 USD</span>
+            </div>
+
+            <!-- Theme Toggle Button -->
+            <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-900 light:bg-slate-100 border border-slate-800 light:border-slate-300 text-slate-300 light:text-slate-600 hover:text-white light:hover:text-black transition">
+                <i id="themeIcon" class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="w-full max-w-md mx-auto px-4 py-6 flex-grow flex flex-col justify-center">
+
+        <!-- Payment Card Container -->
+        <div class="glass-panel border border-slate-800 light:border-slate-200 rounded-3xl p-6 shadow-2xl space-y-6">
+
+            <!-- Section 1: Amount Selection -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-semibold tracking-wider text-slate-400 uppercase">1. Selecciona o Ingresa el Monto</label>
+                    <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Mínimo $0.10 USD</span>
+                </div>
+
+                <!-- Quick Amount Buttons Grid -->
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="selectQuickAmount(0.10)" class="quick-btn active-amount py-2.5 rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="0.10">$0.10</button>
+                    <button onclick="selectQuickAmount(0.50)" class="quick-btn py-2.5 rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="0.50">$0.50</button>
+                    <button onclick="selectQuickAmount(1.00)" class="quick-btn py-2.5 rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="1.00">$1.00</button>
+                    <button onclick="selectQuickAmount(5.00)" class="quick-btn py-2.5 rounded-xl border border-slate-700 light:border-slate-300 bg-slate-800/80 light:bg-white text-sm font-semibold hover:border-emerald-500 transition focus:outline-none" data-val="5.00">$5.00</button>
+                </div>
+
+                <!-- Custom Amount Input Field -->
+                <div class="relative rounded-2xl shadow-inner">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold text-xl">$</div>
+                    <input type="number" id="customAmount" min="0.10" step="0.01" value="0.10" oninput="handleAmountInput()" 
+                        class="block w-full pl-9 pr-16 py-3.5 bg-slate-950/60 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-2xl font-mono font-bold text-white light:text-slate-900 transition">
+                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-xs font-semibold text-slate-400">USD</div>
+                </div>
+            </div>
+
+            <!-- Section 2: Payment Method Tabs -->
+            <div class="space-y-4">
+                <label class="block text-xs font-semibold tracking-wider text-slate-400 uppercase">2. Método de Pago</label>
+                
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950/80 light:bg-slate-200/70 rounded-2xl border border-slate-800/80 light:border-slate-300">
+                    <button id="tabCard" onclick="switchMethod('card')" class="flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition bg-slate-800 light:bg-white text-white light:text-slate-900 shadow">
+                        <i class="fa-solid fa-credit-card text-emerald-400"></i>
+                        <span>Tarjeta Débito/Crédito</span>
+                    </button>
+                    <button id="tabSolana" onclick="switchMethod('solana')" class="flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white light:hover:text-slate-900">
+                        <i class="fa-solid fa-qrcode text-purple-400"></i>
+                        <span>Solana Pay (USDC)</span>
+                    </button>
+                </div>
+
+                <!-- CARD PAYMENT FORM CONTENT -->
+                <div id="cardPaymentView" class="space-y-4 pt-2">
+                    
+                    <!-- Interactive Visual Credit Card Representation -->
+                    <div class="perspective-1000 w-full h-44 cursor-pointer" onclick="flipCard()">
+                        <div id="visualCard" class="relative w-full h-full rounded-2xl transition-transform duration-500 transform-style-3d bg-gradient-to-tr from-slate-900 via-slate-800 to-indigo-950 border border-slate-700/60 p-5 shadow-xl flex flex-col justify-between overflow-hidden">
+                            
+                            <!-- Card Decoration Background Glow -->
+                            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+
+                            <!-- CARD FRONT -->
+                            <div class="card-front flex flex-col justify-between h-full backface-hidden">
+                                <div class="flex justify-between items-center">
+                                    <div class="w-10 h-7 rounded bg-amber-400/80 border border-amber-300 flex items-center justify-center overflow-hidden relative">
+                                        <div class="w-full h-0.5 bg-amber-600/50 my-0.5"></div>
+                                    </div>
+                                    <span id="cardBrandLogo" class="text-lg font-bold italic tracking-wider text-slate-300">
+                                        <i class="fa-brands fa-cc-visa text-2xl text-blue-400"></i>
+                                    </span>
+                                </div>
+
+                                <div class="space-y-1">
+                                    <div id="cardDisplayNumber" class="font-mono text-lg tracking-widest text-white font-semibold">•••• •••• •••• ••••</div>
+                                </div>
+
+                                <div class="flex justify-between items-end text-xs">
+                                    <div>
+                                        <div class="text-[9px] uppercase tracking-wider text-slate-400">Titular</div>
+                                        <div id="cardDisplayName" class="font-medium text-slate-200 uppercase truncate max-w-[150px]">NOMBRE Y APELLIDO</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[9px] uppercase tracking-wider text-slate-400">Expira</div>
+                                        <div id="cardDisplayExp" class="font-mono text-slate-200">MM/AA</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CARD BACK -->
+                            <div class="card-back absolute inset-0 p-5 rounded-2xl bg-slate-900 border border-slate-700 rotate-y-180 backface-hidden flex flex-col justify-between">
+                                <div class="w-full h-8 bg-slate-950 -mx-5 mt-2"></div>
+                                <div class="space-y-1">
+                                    <div class="text-[9px] uppercase text-right text-slate-400">CVV / CVC</div>
+                                    <div id="cardDisplayCvv" class="w-full bg-white text-slate-900 font-mono text-right pr-3 py-1 text-sm rounded font-bold">•••</div>
+                                </div>
+                                <div class="text-[9px] text-slate-500 text-center">Transacción segura procesada por MicroPay Engine</div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Card Form Inputs -->
+                    <div class="space-y-3">
+                        <div>
+                            <input type="text" id="cardNumber" maxlength="19" placeholder="Número de Tarjeta" oninput="updateCardVisual()" 
+                                class="w-full px-4 py-2.5 bg-slate-950/60 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="cardName" placeholder="Nombre en la Tarjeta" oninput="updateCardVisual()" 
+                                class="w-full px-4 py-2.5 bg-slate-950/60 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="cardExp" maxlength="5" placeholder="MM/AA" oninput="updateCardVisual()" 
+                                    class="w-full px-3 py-2.5 bg-slate-950/60 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+                                <input type="password" id="cardCvv" maxlength="4" placeholder="CVV" oninput="updateCardVisual()" onfocus="flipCard(true)" onblur="flipCard(false)"
+                                    class="w-full px-3 py-2.5 bg-slate-950/60 light:bg-slate-100 border border-slate-800 light:border-slate-300 rounded-xl text-sm font-mono text-center focus:ring-2 focus:ring-emerald-500 text-white light:text-slate-900">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pay Button Card -->
+                    <button id="payCardBtn" onclick="processCardPayment()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-lock text-sm"></i>
+                        <span id="cardPayBtnText">Pagar $0.10 USD Ahora</span>
+                    </button>
+
+                </div>
+
+                <!-- SOLANA PAY CONTENT -->
+                <div id="solanaPaymentView" class="hidden space-y-4 pt-2">
+                    <div class="bg-slate-950/80 light:bg-white border border-slate-800 light:border-slate-300 rounded-2xl p-4 flex flex-col items-center space-y-3">
+                        <div class="relative bg-white p-3 rounded-2xl shadow-inner border border-slate-200">
+                            <canvas id="solanaQrCode" class="w-44 h-44"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="w-8 h-8 rounded-full bg-slate-950 border-2 border-white flex items-center justify-center shadow">
+                                    <i class="fa-solid fa-bolt text-solanaGreen text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center space-y-1">
+                            <p class="text-xs text-slate-400">Escanea con Phantom, Solflare o Backpack</p>
+                            <p id="solanaAmountLabel" class="text-sm font-mono font-bold text-solanaGreen">$0.10 USDC (Solana Network)</p>
+                        </div>
+                    </div>
+
+                    <!-- Open Mobile Wallet Link -->
+                    <a id="solanaDeepLink" href="#" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-purple-500/20 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-wallet"></i>
+                        <span>Abrir Billetera Solana</span>
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Security Footer Badge -->
+        <div class="mt-4 text-center flex items-center justify-center space-x-2 text-xs text-slate-500">
+            <i class="fa-solid fa-shield-halved text-emerald-500"></i>
+            <span>Cifrado de extremo a extremo • Micropagos sin comisiones mínimas fijas</span>
+        </div>
+
+    </main>
+
+    <!-- Confirmation Modal -->
+    <div id="receiptModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 rounded-3xl max-w-sm w-full p-6 space-y-5 text-center shadow-2xl relative overflow-hidden">
+            
+            <!-- Glow Accent -->
+            <div class="absolute -top-12 -left-12 w-28 h-28 bg-emerald-500/20 rounded-full blur-2xl"></div>
+
+            <div class="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl">
+                <i class="fa-solid fa-check"></i>
+            </div>
+
+            <div class="space-y-1">
+                <h3 class="text-xl font-bold text-white light:text-slate-900">¡Micropago Confirmado!</h3>
+                <p class="text-xs text-slate-400">El saldo se ha acreditado exitosamente</p>
+            </div>
+
+            <!-- Receipt Breakdown -->
+            <div class="bg-slate-950/60 light:bg-slate-100 rounded-2xl p-4 space-y-2 text-xs font-mono border border-slate-800/60 light:border-slate-200">
+                <div class="flex justify-between text-slate-400">
+                    <span>Monto Recibido:</span>
+                    <span id="receiptAmount" class="font-bold text-emerald-400">$0.10 USD</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>Método:</span>
+                    <span id="receiptMethod" class="text-slate-200 light:text-slate-800">Tarjeta Visa</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>ID Transacción:</span>
+                    <span id="receiptTxId" class="text-slate-400 truncate max-w-[120px]">tx_98a7f1...</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>Comisión Red:</span>
+                    <span class="text-emerald-400">$0.0002 USD</span>
+                </div>
+            </div>
+
+            <button onclick="closeModal()" class="w-full py-3 bg-slate-800 light:bg-slate-200 hover:bg-slate-700 text-white light:text-slate-900 font-bold rounded-xl transition">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- Page JavaScript Logic -->
+    <script>
+        // Global State Variables
+        let currentAmount = 0.10;
+        let activeMethod = 'card'; // 'card' or 'solana'
+        let totalMerchantBalance = 12.40;
+        const merchantSolanaWallet = "MerchantPubKey1111111111111111111111111111111"; // Placeholder merchant public key
+        const usdcMintAddress = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // Mainnet USDC Mint
+
+        // Theme Toggle Logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.className = 'fa-solid fa-sun';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-moon';
+            }
+        }
+
+        // Handle Amount Updates from Quick Buttons
+        function selectQuickAmount(val) {
+            currentAmount = parseFloat(val);
+            document.getElementById('customAmount').value = currentAmount.toFixed(2);
+            
+            // Highlight active button
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                if(parseFloat(btn.getAttribute('data-val')) === val) {
+                    btn.classList.add('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-400');
+                } else {
+                    btn.classList.remove('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-400');
+                }
+            });
+
+            updatePaymentDisplays();
+        }
+
+        // Handle Custom Amount Input
+        function handleAmountInput() {
+            const input = document.getElementById('customAmount');
+            let val = parseFloat(input.value);
+
+            if (isNaN(val) || val < 0.10) {
+                currentAmount = 0.10;
+            } else {
+                currentAmount = val;
+            }
+
+            // Remove active style from quick buttons
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-400');
+            });
+
+            updatePaymentDisplays();
+        }
+
+        // Update Button Text and QR code dynamically
+        function updatePaymentDisplays() {
+            const formattedAmount = currentAmount.toFixed(2);
+            document.getElementById('cardPayBtnText').innerText = `Pagar $${formattedAmount} USD Ahora`;
+            document.getElementById('solanaAmountLabel').innerText = `$${formattedAmount} USDC (Solana Network)`;
+
+            // Update Solana QR Code
+            generateSolanaQR(currentAmount);
+        }
+
+        // Switch Method Tabs
+        function switchMethod(method) {
+            activeMethod = method;
+            const tabCard = document.getElementById('tabCard');
+            const tabSolana = document.getElementById('tabSolana');
+            const cardView = document.getElementById('cardPaymentView');
+            const solanaView = document.getElementById('solanaPaymentView');
+
+            if (method === 'card') {
+                cardView.classList.remove('hidden');
+                solanaView.classList.add('hidden');
+                tabCard.className = "flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition bg-slate-800 light:bg-white text-white light:text-slate-900 shadow";
+                tabSolana.className = "flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white light:hover:text-slate-900";
+            } else {
+                cardView.classList.add('hidden');
+                solanaView.classList.remove('hidden');
+                tabSolana.className = "flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition bg-slate-800 light:bg-white text-white light:text-slate-900 shadow";
+                tabCard.className = "flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white light:hover:text-slate-900";
+                generateSolanaQR(currentAmount);
+            }
+        }
+
+        // Interactive Visual Card Updating
+        function updateCardVisual() {
+            const num = document.getElementById('cardNumber').value || '•••• •••• •••• ••••';
+            const name = document.getElementById('cardName').value || 'NOMBRE Y APELLIDO';
+            const exp = document.getElementById('cardExp').value || 'MM/AA';
+            const cvv = document.getElementById('cardCvv').value || '•••';
+
+            document.getElementById('cardDisplayNumber').innerText = formatCardNumber(num);
+            document.getElementById('cardDisplayName').innerText = name;
+            document.getElementById('cardDisplayExp').innerText = exp;
+            document.getElementById('cardDisplayCvv').innerText = cvv;
+
+            // Brand detection
+            const logoContainer = document.getElementById('cardBrandLogo');
+            if (num.startsWith('4')) {
+                logoContainer.innerHTML = '<i class="fa-brands fa-cc-visa text-2xl text-blue-400"></i>';
+            } else if (num.startsWith('5')) {
+                logoContainer.innerHTML = '<i class="fa-brands fa-cc-mastercard text-2xl text-orange-400"></i>';
+            } else {
+                logoContainer.innerHTML = '<i class="fa-solid fa-credit-card text-2xl text-slate-400"></i>';
+            }
+        }
+
+        function formatCardNumber(val) {
+            return val.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        function flipCard(forceBack) {
+            const card = document.getElementById('visualCard');
+            if (forceBack !== undefined) {
+                if (forceBack) card.classList.add('rotate-y-180');
+                else card.classList.remove('rotate-y-180');
+            } else {
+                card.classList.toggle('rotate-y-180');
+            }
+        }
+
+        // Generate Solana Pay URL and render QR code
+        function generateSolanaQR(amount) {
+            const reference = "ref_" + Math.random().toString(36).substring(7);
+            const solanaPayUrl = `solana:${merchantSolanaWallet}?amount=${amount}&spl-token=${usdcMintAddress}&label=MicroPay%20App&message=Micropago%20%24${amount}`;
+            
+            const deepLink = document.getElementById('solanaDeepLink');
+            if (deepLink) deepLink.href = solanaPayUrl;
+
+            const canvas = document.getElementById('solanaQrCode');
+            if (!canvas) return;
+
+            // Safe QR generation handling if external library CDN is delayed or blocked
+            if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                QRCode.toCanvas(canvas, solanaPayUrl, { width: 176, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } }, function (error) {
+                    if (error) console.error("Error generating QR:", error);
+                });
+            } else {
+                // Fallback QR API in case CDN script isn't loaded yet
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    img.onload = function() {
+                        canvas.width = 176;
+                        canvas.height = 176;
+                        ctx.drawImage(img, 0, 0, 176, 176);
+                    };
+                    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=176x176&data=${encodeURIComponent(solanaPayUrl)}&color=0f172a&bgcolor=ffffff`;
+                }
+            }
+        }
+
+        // Process Card Payment Simulation
+        function processCardPayment() {
+            const btn = document.getElementById('payCardBtn');
+            const originalText = btn.innerHTML;
+            
+            // Loading Spinner State
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            btn.disabled = true;
+
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                // Show Success Receipt
+                showReceipt('Tarjeta de Débito/Crédito');
+            }, 1200);
+        }
+
+        // Show Receipt Modal and Update Ledger
+        function showReceipt(methodName) {
+            totalMerchantBalance += currentAmount;
+            document.getElementById('merchantBalance').innerText = `$${totalMerchantBalance.toFixed(2)} USD`;
+            
+            document.getElementById('receiptAmount').innerText = `$${currentAmount.toFixed(2)} USD`;
+            document.getElementById('receiptMethod').innerText = methodName;
+            document.getElementById('receiptTxId').innerText = "tx_" + Math.random().toString(36).substring(2, 10);
+            
+            const modal = document.getElementById('receiptModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('receiptModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // On Page Load Initialization
+        window.onload = function() {
+            selectQuickAmount(0.10);
+        };
+    </script>
+</body>
+</html>
